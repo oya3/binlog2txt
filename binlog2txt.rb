@@ -9,6 +9,7 @@ require 'pry'
 Encoding.default_external = 'utf-8'
 Encoding.default_internal = 'utf-8'
 
+# 参考：ms 対応するために無理クリ msオフセット でなんとかできないかな。。。以下の仕様書で。。。
 # unsignedで32ビットの場合、最大で0xffffffff(10進数で4294967295)までの数値を扱うことができる。
 # これを10ミリ秒単位でカウントアップすると、42949672950ミリ秒、つまり497日2時間27分52秒950ミリ秒までしか数えることができない。
 # 従って、この問題のあるシステムでは、497日を超えた連続稼動が出来ない。
@@ -39,8 +40,7 @@ def get_binlog(file)
       binlog[:logs] << Log.read(io)
     end
   rescue => e
-    puts e.message + "\n" + e.backtrace.join("\n")
-    exit
+    raise "get_binlog() error. " + e.message
   end
   return binlog
 end
@@ -52,8 +52,7 @@ def get_runable_object(file,key)
     runable_object[:magic_keyword_offset] = runable_object[:body] =~ /#{key}/
     raise "not found magic_keyword '@DOUBLE_MCTWIST@'" if runable_object[:magic_keyword_offset].nil?
   rescue => e
-    puts e.message + "\n" + e.backtrace.join("\n")
-    exit
+    raise "get_runable_object() error. " + e.message
   end
   return runable_object
 end
@@ -67,14 +66,14 @@ def get_string(target_address, base_address, runable_object)
   runable_body = runable_object[:body]
   offset = base_address - runable_address
   pos = target_address - offset
-  string = ''
+  string = Array.new
   # TODO: 最大256アスキー文字しか考慮しない
   256.times do |index|
     char = runable_body[pos+index]
     break if char == "\x00"
-    string += char
+    string << char
   end
-  return string
+  return string.join.force_encoding("cp932"); # TODO: cp932のみ対応
 end
 
 def create_log(binlog,runable_object)
@@ -118,16 +117,22 @@ end
 # オプション
 parameters = Hash.new
 parameters[:magic_keyword] = '@DOUBLE_MCTWIST@'
+parameters[:endian] = :little
+parameters[:encoding] = 'cp932';
 opt = OptionParser.new
 opt.on('-m VAL', '--magic-keyword VAL') {|val| parameters[:magic_keyword] = val } # マジックキーワード
 opt.on('-o VAL', '--outpath VAL') {|val| parameters[:outpath] = val } # 出力先
+opt.on('-b', '--big') {parameters[:endian] = :bing } # TODO: エンディアン
+opt.on('-e VAL', '--encoding VAL') {|val| parameters[:encoding] = val } # TODO: エンコード
+
 
 argv = opt.parse(ARGV)
 if argv.length != 2 then
   puts "usage: binlog2txt [binlog] [runable object]"
-  puts "  options: -m(--magic-keyword): magic keyword. default is '@DOUBLE_MCTWIST@'"
-  puts "           -o(--outpath): output file path. default is binlog + '.txt'"
-  puts "           -e(--endian): endian. default is 'little'."
+  puts "  options: -m(--magic-keyword): magic keyword. default is '@DOUBLE_MCTWIST@'."
+  puts "           -o(--outpath): output file path. default is binlog + '.txt'."
+  puts "           -b(--big): endian is big. default is 'little'."
+  puts "           -e(--encoding): encoding. default is 'cp932'."
   exit
 end
 
@@ -139,11 +144,15 @@ unless parameters.has_key? :outpath
   parameters[:outpath] = parameters[:binlog_path] + '.txt';
 end
 
-binlog = get_binlog(parameters[:binlog_path])
-runable_object = get_runable_object(parameters[:runable_object_path],parameters[:magic_keyword])
-logs = create_log(binlog,runable_object)
-output(logs,parameters[:outpath])
-
+begin
+  binlog = get_binlog(parameters[:binlog_path])
+  runable_object = get_runable_object(parameters[:runable_object_path],parameters[:magic_keyword])
+  logs = create_log(binlog,runable_object)
+  output(logs,parameters[:outpath])
+rescue => e
+  puts "ERROR: " + e.message + "\n" + e.backtrace.join("\n")
+  exit
+end
 # File.write(parameters[:outpath],log.join("\n"))
 
 puts "complete."

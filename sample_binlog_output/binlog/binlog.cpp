@@ -156,8 +156,9 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	BINLOG_INITIALIZE(10); // 初期化 10件のログ
 	for(int index=0; index<21; ++index){
-		BINLOG("test_log", index, index);
+		BINLOG("表示能力①②③", index, index);
 	}
+	BINLOG("abc123", 0, 0);
 	BINLOG_WRITE("test.binlog"); // binlog書き出し
 
 	return 0;

@@ -2,7 +2,8 @@
 *~
 *\#*
 
-sample_binlog_output/Debug
+sample_binlog_output/Debug/binlog.ilk
+sample_binlog_output/Debug/binlog.pdb
 sample_binlog_output/binlog/Debug
 *.ncb
 *.suo
