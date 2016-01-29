@@ -1,0 +1,10 @@
+# emacs
+*~
+*\#*
+
+sample_binlog_output/Debug
+sample_binlog_output/binlog/Debug
+*.ncb
+*.suo
+binlog.vcproj.*.user
+test.binlog.txt
