@@ -122,7 +122,7 @@ public:
 
 		fout.write( (char*)&m_count,sizeof(m_count)); // 件数
 
-		uint32 looped = m_looped ? 1: 0;
+		// uint32 looped = m_looped ? 1: 0;
 		if(m_looped){
 			// ループ済
 			fout.write( (char*)&m_index,sizeof(uint32)); // 開始位置
